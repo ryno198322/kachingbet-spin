@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spin & Win</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: #fff;
+  text-align: center;
+}
+
+#wheel-container {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  margin: 20px auto;
+}
+
+#wheel {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 8px solid #fff;
+  transition: transform 4s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+}
+
+.arrow {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 40px;
+  color: red;
+}
+
+button {
+  padding: 12px 20px;
+  font-size: 16px;
+  margin: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+input {
+  padding: 12px;
+  font-size: 16px;
+  width: 80%;
+  margin: 10px;
+  border-radius: 6px;
+  border: none;
+}
+
+#result {
+  font-size: 22px;
+  margin-top: 15px;
+  display: none;
+}
+
+.success {
+  animation: pop 0.6s ease;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.hidden {
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🎯 SPIN & WIN 🎯</h2>
+
+<input type="tel" id="phone" placeholder="Enter phone number">
+
+<div id="wheel-container">
+  <div class="arrow">⬇️</div>
+  <canvas id="wheel" width="300" height="300"></canvas>
+</div>
+
+<button onclick="spin()">SPIN</button>
+
+<div id="result"></div>
+
+<button id="claimBtn" class="hidden" onclick="sendSMS()">SEND TO CLAIM</button>
+
+<audio id="tick" src="https://www.soundjay.com/mechanical/sounds/mechanical-switch-1.mp3"></audio>
+
+<script>
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+const colors = [
+  "#FF5733","#33FF57","#3357FF","#FF33A8","#FFD433",
+  "#33FFF5","#8D33FF","#FF8C33","#33FF8C","#FF3333"
+];
+
+const prize = "N$50";
+const usedNumbers = new Set();
+let spinning = false;
+let angle = 0;
+let selectedIndex = null;
+
+function drawWheel(reveal = false) {
+  const slice = 2 * Math.PI / colors.length;
+  ctx.clearRect(0,0,300,300);
+
+  for (let i = 0; i < colors.length; i++) {
+    ctx.beginPath();
+    ctx.fillStyle = colors[i];
+    ctx.moveTo(150,150);
+    ctx.arc(150,150,150,i*slice,(i+1)*slice);
+    ctx.fill();
+
+    if (reveal && i === selectedIndex) {
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 18px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.save();
+      ctx.translate(150,150);
+      ctx.rotate(i*slice + slice/2);
+      ctx.fillText(prize, 90, 0);
+      ctx.restore();
+    }
+  }
+}
+
+drawWheel();
+
+function spin() {
+  if (spinning) return;
+
+  const phone = document.getElementById("phone").value.trim();
+  if (!phone) {
+    alert("Please enter a phone number");
+    return;
+  }
+
+  if (usedNumbers.has(phone)) {
+    alert("This phone number already had a spin");
+    return;
+  }
+
+  spinning = true;
+  document.getElementById("result").style.display = "none";
+  document.getElementById("claimBtn").classList.add("hidden");
+
+  selectedIndex = Math.floor(Math.random() * colors.length);
+  const sliceDeg = 360 / colors.length;
+  const targetAngle = 360 * 5 + (360 - (selectedIndex * sliceDeg + sliceDeg / 2));
+  angle += targetAngle;
+
+  canvas.style.transform = `rotate(${angle}deg)`;
+
+  const tick = document.getElementById("tick");
+  const tickInterval = setInterval(() => {
+    tick.currentTime = 0;
+    tick.play();
+  }, 120);
+
+  setTimeout(() => {
+    clearInterval(tickInterval);
+    spinning = false;
+    usedNumbers.add(phone);
+    drawWheel(true);
+
+    const result = document.getElementById("result");
+    result.innerHTML = `🎉 Congratulations! You won <b>${prize}</b>`;
+    result.className = "success";
+    result.style.display = "block";
+
+    document.getElementById("claimBtn").classList.remove("hidden");
+  }, 4200);
+}
+
+function sendSMS() {
+  const phone = document.getElementById("phone").value.trim();
+  const yourNumber = "264818216847";
+
+  const message = `SPIN WINNER 🎉 Phone: ${phone} Prize: N$50`;
+  window.location.href = `sms:${yourNumber}?body=${encodeURIComponent(message)}`;
+}
+</script>
+
+</body>
+</html>
